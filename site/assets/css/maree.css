@@ -61,7 +61,7 @@ body.mr-locked { overflow: hidden; }
 .mr-page ::selection { background: var(--mr-panel); color: var(--mr-bone); }
 .mr-page :focus-visible { outline: 1px solid var(--mr-bone); outline-offset: 4px; }
 
-.mr-page { position: relative; overflow-x: clip; }
+.mr-page { position: relative; overflow-x: clip; background: var(--mr-ink); color: var(--mr-taupe); font-family: var(--mr-font-body); }
 
 /* ---------- type ---------- */
 .mr-display {

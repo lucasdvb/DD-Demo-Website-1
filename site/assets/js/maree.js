@@ -17,7 +17,7 @@ function onReady(fn) {
   else document.addEventListener('DOMContentLoaded', fn, { once: true })
 }
 
-onReady(async () => {
+async function init() {
   const page = document.querySelector('.mr-page')
   if (!page) return
 
@@ -177,7 +177,7 @@ onReady(async () => {
 
   /* ---------- lagoon band ---------- */
   document.querySelectorAll('[data-lagoon]').forEach(mountLagoon)
-})
+}
 
 /* ==========================================================================
    GetLayers · gradient "Mere" — five directional waves summed in closed form
@@ -355,3 +355,6 @@ function mountLagoon(host) {
   }
   requestAnimationFrame(frame)
 }
+
+// run last: every const above (shader sources, CONFIG) must exist before init touches them
+onReady(init)
