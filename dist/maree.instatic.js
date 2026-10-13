@@ -11,6 +11,16 @@
 import Lenis from 'lenis'
 
 const html = document.documentElement
+// Ambient scroll films rendered with Remotion (motion/). Locally they sit next to the page;
+// on Instatic they are served from the repository through jsDelivr (see tools/build_instatic.py).
+const MOTION_BASE = 'https://cdn.jsdelivr.net/gh/lucasdvb/DD-Demo-Website-1@63c36471da2fe1b3d09ee44571d692d9d2491b56/site/assets/motion/'
+const FILMS = [
+  { sel: '.mr-intro', film: 'breath', a: 1, cls: 'mr-ambient--contain' },
+  { sel: '#experiences', film: 'tide', a: 0.8, cls: 'mr-ambient--top' },
+  { sel: '#membership', film: 'motes', a: 0.9 },
+  { sel: '.mr-ticker', film: 'tide', a: 0.6 },
+  { sel: '.mr-footer', film: 'motes', a: 0.55 }
+]
 const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
 html.classList.add('mr-js')
 
@@ -87,6 +97,14 @@ function init() {
   const header = document.querySelector('.mr-header')
   let lastY = 0
 
+  /* ---------- hero scroll-out ---------- */
+  const heroInner = document.querySelector('.mr-hero__inner')
+  const heroHud = document.querySelector('.mr-hero__hud')
+  const heroMedia = document.querySelector('.mr-hero__media')
+
+  /* ---------- scroll films: scroll position picks the frame ---------- */
+  const films = mountFilms()
+
   /* ---------- parallax plates ---------- */
   const plates = [...document.querySelectorAll('[data-parallax]')].map(img => ({ img, k: parseFloat(img.dataset.parallax) || 0.1 }))
 
@@ -100,6 +118,15 @@ function init() {
       if (!menuOpen) header.classList.toggle('is-hidden', y > 420 && y > lastY + 2)
       if (y < lastY - 2) header.classList.remove('is-hidden')
       lastY = y
+    }
+
+    if (!reduceMotion && heroInner) {
+      // the hero recedes as you leave it: copy lifts and fades, the film drifts closer
+      const k = Math.min(1, Math.max(0, y / (vh * 0.75)))
+      heroInner.style.transform = `translate3d(0, ${(-k * 60).toFixed(1)}px, 0)`
+      heroInner.style.opacity = String(1 - k * 0.95)
+      if (heroHud) heroHud.style.opacity = String(1 - Math.min(1, k * 2))
+      if (heroMedia) heroMedia.style.transform = `scale(${(1 + k * 0.08).toFixed(4)})`
     }
 
     if (!reduceMotion) {
@@ -179,6 +206,77 @@ function init() {
 
   /* ---------- booking pop-up (every Book / Reserve / Reservations / Enquire) ---------- */
   setupBooking({ lock, closeMenu })
+
+  /* ---------- pointer spotlight on glass and photographs ---------- */
+  let spotRaf = 0, spotEv = null
+  document.addEventListener('pointermove', e => {
+    spotEv = e
+    if (spotRaf) return
+    spotRaf = requestAnimationFrame(() => {
+      spotRaf = 0
+      const el = spotEv.target.closest && spotEv.target.closest('.mr-card, .mr-exp__card, .mr-plate')
+      if (!el) return
+      const r = el.getBoundingClientRect()
+      el.style.setProperty('--mx', `${spotEv.clientX - r.left}px`)
+      el.style.setProperty('--my', `${spotEv.clientY - r.top}px`)
+    })
+  }, { passive: true })
+}
+
+/* Scroll films: each video is all-intra (every frame a keyframe) so seeking is instant.
+   The section's progress through the viewport sets a target time; a damped follower
+   eases the playhead toward it, so the film glides with the scroll rather than ticking. */
+function mountFilms() {
+  const films = []
+  for (const cfg of FILMS) {
+    const host = document.querySelector(cfg.sel)
+    if (!host || host.querySelector(':scope > .mr-ambient')) continue
+    host.classList.add('mr-has-ambient')
+    const wrap = document.createElement('div')
+    wrap.className = `mr-ambient ${cfg.cls || ''}`
+    wrap.style.setProperty('--a', cfg.a)
+    wrap.setAttribute('aria-hidden', 'true')
+    const v = document.createElement('video')
+    v.muted = true; v.playsInline = true; v.preload = 'auto'
+    v.setAttribute('muted', ''); v.setAttribute('playsinline', '')
+    v.innerHTML = `<source src="${MOTION_BASE}${cfg.film}.mp4" type="video/mp4"><source src="${MOTION_BASE}${cfg.film}.webm" type="video/webm">`
+    wrap.appendChild(v)
+    host.prepend(wrap)
+    const f = { host, wrap, v, target: 0, cur: 0, ready: false, visible: false, primed: false }
+    v.addEventListener('loadeddata', () => {
+      f.ready = true
+      if (reduceMotion) v.currentTime = v.duration * 0.5
+      wrap.classList.add('is-on')
+    }, { once: true })
+    films.push(f)
+  }
+  if (!films.length) return films
+
+  const io = new IntersectionObserver(es => es.forEach(e => {
+    const f = films.find(x => x.host === e.target)
+    if (!f) return
+    f.visible = e.isIntersecting
+    // iOS only buffers after a play gesture-free play(); pause straight away
+    if (f.visible && !f.primed) { f.primed = true; f.v.play().then(() => f.v.pause()).catch(() => {}) }
+  }), { rootMargin: '200px 0px' })
+  films.forEach(f => io.observe(f.host))
+
+  if (!reduceMotion) {
+    const tick = () => {
+      requestAnimationFrame(tick)
+      const vh = window.innerHeight
+      for (const f of films) {
+        if (!f.visible || !f.ready || !f.v.duration) continue
+        const r = f.wrap.getBoundingClientRect()
+        f.target = Math.min(1, Math.max(0, (vh - r.top) / (vh + r.height)))
+        f.cur += (f.target - f.cur) * 0.12
+        const t = f.cur * (f.v.duration - 0.05)
+        if (!f.v.seeking && Math.abs(f.v.currentTime - t) > 1 / 45) f.v.currentTime = t
+      }
+    }
+    requestAnimationFrame(tick)
+  }
+  return films
 }
 
 /* hero film: muted inline loop; ready = first frame decoded (or it fails and we move on) */
@@ -201,7 +299,7 @@ function heroReady(video) {
    ========================================================================== */
 const MERE_CONFIG = {
   // tint → house palette (night ground, umber, taupe-panel, lagoon slate, bone)
-  bgColor: '#0e0c0b', colorA: '#211e1c', colorB: '#4b443c', colorC: '#8f9a93', colorD: '#edecea',
+  bgColor: '#070605', colorA: '#14120f', colorB: '#4b443c', colorC: '#8f9a93', colorD: '#edecea',
   // motion + field: the asset's own defaults, untouched
   scale: 0.20, speed: 0.33, angle: -1.71, freq: 6, freqStep: 2.27, amp: 0.045, ampStep: 0.44, waveSpeed: 2.26,
   relief: 1.65, lightX: 0.44, lightY: 0.06, lightZ: 1.49, ambient: 0.12, diffuse: 0.47, specular: 0.94, gloss: 43.5, sky: 0.23,

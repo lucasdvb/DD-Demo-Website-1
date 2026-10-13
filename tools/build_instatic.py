@@ -78,4 +78,7 @@ assert dyn in js
 js = js.replace(dyn, static).replace('async function init() {', 'function init() {')
 js = js.replace('const html = document.documentElement', "import Lenis from 'lenis'\n\nconst html = document.documentElement", 1)
 js = js.replace('/* ---------- smooth scroll (optional dependency) ---------- */', '/* ---------- smooth scroll ---------- */')
+# films live in the repository; jsDelivr serves them (Range + CORS) pinned to the commit that added them
+MOTION_COMMIT = os.environ.get('MOTION_COMMIT', '63c36471da2fe1b3d09ee44571d692d9d2491b56')
+js = js.replace("const MOTION_BASE = 'assets/motion/'", f"const MOTION_BASE = 'https://cdn.jsdelivr.net/gh/lucasdvb/DD-Demo-Website-1@{MOTION_COMMIT}/site/assets/motion/'")
 open(os.path.join(ROOT, 'dist/maree.instatic.js'), 'w').write(js)

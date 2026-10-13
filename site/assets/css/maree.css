@@ -787,7 +787,7 @@ html.mr-js .mr-wordmark.is-in span { transform: none; }
   .mr-frame--half { height: 70vw; }
   .mr-exp { grid-template-columns: 1fr; }
   .mr-member__head { grid-template-columns: 1fr; gap: 20px; }
-  .mr-lagoon::after { background: linear-gradient(180deg, rgba(14,12,11,.2) 0%, rgba(14,12,11,.85) 100%); }
+  .mr-lagoon::after { background: linear-gradient(180deg, var(--mr-ink) 0%, rgba(7,6,5,.2) 20%, rgba(7,6,5,.88) 100%); }
   .mr-lagoon { align-items: flex-end; }
   .mr-lagoon__hint { display: none; }
   .mr-cta__btns .mr-btn { min-width: 0; width: 100%; }
