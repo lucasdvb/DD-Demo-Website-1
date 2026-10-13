@@ -1,0 +1,15 @@
+{
+  "name": "maree-motion",
+  "private": true,
+  "description": "Remotion compositions for the Marée ambient scroll films",
+  "scripts": {
+    "studio": "remotion studio src/index.ts",
+    "render": "node render.mjs"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.535",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "remotion": "4.0.535"
+  }
+}

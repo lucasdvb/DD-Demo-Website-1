@@ -2,3 +2,5 @@ node_modules/
 .DS_Store
 shots/
 uploads/
+motion/node_modules/
+motion/out/

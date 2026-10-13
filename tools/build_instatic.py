@@ -59,3 +59,23 @@ for f in os.listdir(os.path.join(ROOT, 'dist/sections')):
 for i, b in enumerate(out):
     open(os.path.join(ROOT, f'dist/sections/{i:02d}.html'), 'w').write(re.sub(r'\n\s+', '\n', b).strip())
     print(i, len(b), b[:70].replace('\n', ' '))
+
+# dist/maree.instatic.js — Instatic bundles bare imports, so Lenis becomes a static import
+js = open(os.path.join(ROOT, 'site/assets/js/maree.js')).read()
+dyn = """  let lenis = null
+  if (!reduceMotion) {
+    try {
+      const mod = await import('lenis')
+      const Lenis = mod.default || mod.Lenis
+      lenis = new Lenis({ duration: 1.25, easing: t => 1 - Math.pow(1 - t, 4), smoothWheel: true })
+    } catch (e) { lenis = null }
+  }"""
+static = """  let lenis = null
+  if (!reduceMotion) {
+    try { lenis = new Lenis({ duration: 1.25, easing: t => 1 - Math.pow(1 - t, 4), smoothWheel: true }) } catch (e) { lenis = null }
+  }"""
+assert dyn in js
+js = js.replace(dyn, static).replace('async function init() {', 'function init() {')
+js = js.replace('const html = document.documentElement', "import Lenis from 'lenis'\n\nconst html = document.documentElement", 1)
+js = js.replace('/* ---------- smooth scroll (optional dependency) ---------- */', '/* ---------- smooth scroll ---------- */')
+open(os.path.join(ROOT, 'dist/maree.instatic.js'), 'w').write(js)

@@ -1,30 +1,13 @@
-// Local visual QA: serves site/ with /uploads read from a local media mirror,
+// Local visual QA: serves site/ (tools/serve.js) with /uploads read from a local media mirror,
 // then captures desktop + mobile frames at scroll stops.
 // usage: node tools/preview.js <outDir> [url]
-const http = require('http')
 const fs = require('fs')
-const path = require('path')
 const { chromium } = require(process.env.PW_PATH || '/opt/node-tools/node_modules/playwright')
 
-const ROOT = path.join(__dirname, '..', 'site')
-const TYPES = { '.html': 'text/html', '.css': 'text/css', '.js': 'text/javascript', '.svg': 'image/svg+xml', '.jpg': 'image/jpeg', '.webp': 'image/webp' }
+const { createServer } = require('./serve')
 
 function serve() {
-  return new Promise(resolve => {
-    const srv = http.createServer((req, res) => {
-      const url = decodeURIComponent(req.url.split('?')[0])
-      // /uploads/* is read from a local mirror of the Instatic media library
-      // (UPLOADS_DIR, fetched with curl beforehand — node's https ignores the proxy)
-      const file = url.startsWith('/uploads/')
-        ? path.join(process.env.UPLOADS_DIR || 'uploads', path.basename(url))
-        : path.join(ROOT, url === '/' ? 'index.html' : url)
-      fs.readFile(file, (err, buf) => {
-        if (err) { res.writeHead(404); res.end(); return }
-        res.writeHead(200, { 'content-type': TYPES[path.extname(file)] || 'application/octet-stream' })
-        res.end(buf)
-      })
-    }).listen(0, () => resolve(srv))
-  })
+  return new Promise(resolve => { const srv = createServer().listen(0, () => resolve(srv)) })
 }
 
 ;(async () => {
